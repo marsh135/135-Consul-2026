@@ -133,6 +133,8 @@ public final class Constants {
 				isTuningVision = true,
 				isTuningIntake = true,
 				isTuningClimber = true,
+				isTuningElevator = true,
+				isTuningPinkArm = true,
 				isTuningModules = true,
 				isTuningDrivetrain = true,
 				isTuningCharacterization = true;

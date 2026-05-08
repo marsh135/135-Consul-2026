@@ -104,6 +104,30 @@ import frc.robot.Constants.TuningConstants;
 import frc.robot.commands.drive.AimToRotation;
 
 
+import frc.robot.commands.FeedForwardCharacterization;
+import frc.robot.commands.StaticCharacterization;
+import frc.robot.commands.drive.DrivetrainC;
+import frc.robot.commands.drive.WheelRadiusCharacterization;
+import frc.robot.subsystems.SubsystemChecker;
+import frc.robot.subsystems.advancedMechs.PinkArm.PinkArm;
+import frc.robot.subsystems.advancedMechs.PinkArm.PinkArm.WantedState;
+import frc.robot.subsystems.advancedMechs.PinkArm.extension.ExtensionIO;
+import frc.robot.subsystems.advancedMechs.PinkArm.extension.ExtensionIOSim;
+import frc.robot.subsystems.advancedMechs.PinkArm.extension.ExtensionIOTalonFX;
+import frc.robot.subsystems.advancedMechs.PinkArm.shoulder.ShoulderIO;
+import frc.robot.subsystems.advancedMechs.PinkArm.shoulder.ShoulderIOSim;
+import frc.robot.subsystems.advancedMechs.PinkArm.shoulder.ShoulderIOTalonFX;
+import frc.robot.subsystems.advancedMechs.PinkArm.wrist.WristIO;
+import frc.robot.subsystems.advancedMechs.PinkArm.wrist.WristIOSim;
+import frc.robot.subsystems.advancedMechs.PinkArm.wrist.WristIOTalonFX;
+import frc.robot.subsystems.drive.DrivetrainS;
+import frc.robot.subsystems.drive.FastSwerve.ModuleIO;
+import frc.robot.subsystems.drive.FastSwerve.ModuleIOKrakenFOC;
+import frc.robot.subsystems.drive.FastSwerve.ModuleIOKrakenFOCShifting;
+import frc.robot.subsystems.drive.FastSwerve.ModuleIOKrakenFOCWithThrifty;
+import frc.robot.subsystems.drive.FastSwerve.ModuleIOSim;
+import frc.robot.subsystems.drive.FastSwerve.ModuleIOSparkBase;
+import frc.robot.subsystems.drive.FastSwerve.Swerve;
 
 
 import frc.robot.subsystems.drive.FastSwerve.Swerve.ModuleLimits;
@@ -143,10 +167,16 @@ import frc.robot.utils.drive.Sensors.GyroIONavX;
 import frc.robot.utils.drive.Sensors.GyroIOPigeon2;
 import frc.robot.utils.drive.Sensors.GyroIOSim;
 import frc.robot.utils.simpleMechanisms.SimpleMechanismConstants;
+import frc.robot.utils.robotToggles.Toggles;
+import frc.robot.utils.robotToggles.TogglesIO;
+import frc.robot.utils.robotToggles.TogglesIOHardware;
+import frc.robot.utils.robotToggles.TogglesIONetworkTables;
 
 import frc.robot.utils.Touchboard.PosePlotterUtil;
 import frc.robot.utils.Touchboard.JukeboxUtil;
 import frc.robot.utils.Touchboard.PosePlotterUtil.CommandPair;
+import frc.robot.utils.advancedMechs.AdvancedMechanismConstants;
+import frc.robot.utils.advancedMechs.AdvancedMechanismConstants.PinkArm.ArmPosition;
 
 /**
  * This code depends on WPILib 2025, Choreo 2025, PhotonLib 2025, Studica,
@@ -158,6 +188,8 @@ public class RobotContainer {
 	// The robot's subsystems and commands are defined here...
 	public static DrivetrainS drivetrainS;
 	public static Vision visionS;
+	public static PinkArm pinkArm;
+	public static Toggles toggles;
 	public static LocalADStarAK pathFinder = new LocalADStarAK();
 	public static Climber climber;
 	public static Intake intake;
@@ -511,6 +543,12 @@ public class RobotContainer {
 								new VisionIOPhotonVision(() -> getSelectedAprilTagLayout(), VisionConstants.cameras[3].getId(),
 										GeomUtil.poseToTransform3d(VisionConstants.cameras[3].getPose().get())));
 				 */
+				ExtensionIO extensionIO = new ExtensionIOTalonFX();
+				ShoulderIO shoulderIO = new ShoulderIOTalonFX();
+				WristIO wristIO = new WristIOTalonFX();
+				pinkArm = new PinkArm(extensionIO, shoulderIO, wristIO);
+				//Advanced Mechs Require Toggles
+				toggles = new Toggles(new TogglesIOHardware());
 				System.out.println("REAL SETUP DONE!");
 				switch (SimpleMechanismConstants.Climber.motorType) {
 					case CTRE_ON_RIO:
@@ -655,6 +693,11 @@ public class RobotContainer {
 								GeomUtil.poseToTransform3d(VisionConstants.cameras[2].getPose().get()),() -> fieldSimulation.getMainDriveSimulation().getPose3d().toPose2d()),
 						new VisionIOPhotonVisionSim(() -> getSelectedAprilTagLayout(), "BackLeftCam",
 								GeomUtil.poseToTransform3d(VisionConstants.cameras[3].getPose().get()), () -> fieldSimulation.getMainDriveSimulation().getPose3d().toPose2d()));
+				ExtensionIO extensionIOSim = new ExtensionIOSim();
+				ShoulderIO shoulderIOSim = new ShoulderIOSim();
+				WristIO wristIOSim = new WristIOSim();
+				pinkArm = new PinkArm(extensionIOSim, shoulderIOSim, wristIOSim);
+				toggles = new Toggles(new TogglesIONetworkTables());
 				System.out.println("SIM SETUP DONE!");
 				climber = new Climber(new ClimberIOSim());
 				intake = new Intake(new IntakeIOSim());
@@ -701,6 +744,15 @@ public class RobotContainer {
 						}); // MUST be same number of cameras as in real robot
 				climber = new Climber(new ClimberIO(){});
 				intake = new Intake(new IntakeIO(){});
+				ExtensionIO extensionIODummy = new ExtensionIO() {
+				};
+				ShoulderIO shoulderIODummy = new ShoulderIO() {
+				};
+				WristIO wristIODummy = new WristIO() {
+				};
+				pinkArm = new PinkArm(extensionIODummy, shoulderIODummy, wristIODummy);
+				toggles = new Toggles(new TogglesIO() {
+				});
 		}
 
 		drivetrainS.resetPose(GeomUtil.apply(startingPose, false));
@@ -883,6 +935,21 @@ public class RobotContainer {
 			DriveConstants.autoIntake = !DriveConstants.autoIntake;
 		}));
 		//AITargets.values()[classId].name()
+		new Trigger(toggles::isHomeButtonPressed).onTrue(
+				new InstantCommand(() -> pinkArm.tareAllAxesUsingButtonValues())
+		);
+		selectButtonDrive.onTrue(
+			//a command which runs armSubsystem.setWantedState(ArmSubsystem.WantedState.HOME) until armSubsystem.hasHomeCompleted() is true && pinkArm.isAtTaredPositions()
+			Commands.runOnce(() -> pinkArm.setWantedState(PinkArm.WantedState.HOME)
+			).until(() -> pinkArm.hasHomeCompleted() && pinkArm.reachedSetpoint())			
+		);
+		bButtonDrive
+				//Simply sets the pinkArmWantedState to up position
+				.onTrue(new InstantCommand(() -> pinkArm.setWantedState(PinkArm.WantedState.MOVE_TO_POSITION, new ArmPosition(.5, new Rotation2d(Math.PI/2), new Rotation2d()))));
+		bButtonDrive
+				.onFalse(new InstantCommand(() -> {
+					pinkArm.setWantedState(WantedState.MOVE_TO_POSITION, AdvancedMechanismConstants.PinkArm.zeroedArmPos);
+				}));
 		startButtonDrive
 				.onTrue(new InstantCommand(() -> DriveConstants.autoAvoidance = !DriveConstants.autoAvoidance));
 		// aButtonDrive.whileTrue(superStructure.setGoalCommand(Goal.ONE_METER));
